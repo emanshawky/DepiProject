@@ -1,12 +1,13 @@
-version: '3.8'
+version: "3.8"
 
 services:
   flask-app:
     build: .
+    container_name: flask-expense-tracker
     ports:
       - "5000:5000"
+    volumes:
+      - ./data:/flask-data
     environment:
       - DB_PATH=/flask-data
-    volumes:
-      - ./data:/flask-data  # Map /flask-data to a persistent volume
-    restart: always
+    restart: unless-stopped

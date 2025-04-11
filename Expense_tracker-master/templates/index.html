@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}Home{% endblock %}
+{% block content %}
+    <h1 class="text-3xl font-bold mb-6">Expense Overview</h1>
+
+    <div class="overflow-x-auto">
+        <table class="min-w-full bg-white shadow rounded-lg overflow-hidden">
+            <thead class="bg-blue-600 text-white">
+                <tr>
+                    <th class="py-3 px-4 text-left">ID</th>
+                    <th class="py-3 px-4 text-left">Description</th>
+                    <th class="py-3 px-4 text-left">Category</th>
+                    <th class="py-3 px-4 text-left">Amount</th>
+                    <th class="py-3 px-4 text-left">Date</th>
+                    <th class="py-3 px-4 text-left">Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for expense in expenses %}
+                <tr class="border-b hover:bg-gray-100 transition" data-aos="fade-up" data-aos-delay="{{ loop.index0 * 100 }}">
+                    <td class="py-3 px-4">{{ expense[0] }}</td>
+                    <td class="py-3 px-4">{{ expense[1] }}</td>
+                    <td class="py-3 px-4">{{ expense[2] }}</td>
+                    <td class="py-3 px-4">${{ "%.2f"|format(expense[3]) }}</td>
+                    <td class="py-3 px-4">{{ expense[4] }}</td>
+                    <td class="py-3 px-4">
+                        <form action="/delete/{{ expense[0] }}" method="post">
+                            <button type="submit" class="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded shadow-sm transition">
+                                Delete
+                            </button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+{% endblock %}
