@@ -1,0 +1,8 @@
+# Ignore Visual Studio files
+.vs/
+*.vsidx
+
+# Ignore other temporary or system files
+*.log
+*.tmp
+*.swp
