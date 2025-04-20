@@ -1,51 +1,85 @@
+# Configure the AWS Provider
+terraform {
+  required_providers {
+    aws = {
+      source  = "hashicorp/aws"
+      version = "~> 4.0" # Or your preferred version
+    }
+  }
+}
+
 provider "aws" {
-  region     = "eu-west-2"
-  access_key = var.aws_access_key
-  secret_key = var.aws_secret_key
+  region = "eu-west-2"
 }
 
-resource "aws_key_pair" "deployer_new" {
-  key_name   = "deployer-key1"
-  public_key = file("~/.ssh/id_rsa.pub")
-}
 
-resource "aws_security_group" "allow_ssh_new" {
-  name        = "allow_ssh1"
-  description = "Allow SSH inbound traffic"
+# Create a security group to allow HTTP traffic
+resource "aws_security_group" "allow_http" {
+  name        = "allow_http"
+  description = "Allow HTTP inbound traffic"
 
   ingress {
-    description = "SSH"
-    from_port   = 22
-    to_port     = 22
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
+    description      = "HTTP from anywhere"
+    from_port        = 8080
+    to_port          = 8080
+    protocol         = "tcp"
+    cidr_blocks      = ["0.0.0.0/0"]
   }
+  
+# New ingress rule for SSH
+  ingress {
+    description      = "SSH from your IP"
+    from_port        = 22
+    to_port          = 22
+    protocol         = "tcp"
+    cidr_blocks      = ["0.0.0.0/0"]
+  }
+
 
   egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
+    from_port        = 0
+    to_port          = 0
+    protocol         = "all"
+    cidr_blocks      = ["0.0.0.0/0"]
   }
 }
 
-resource "aws_instance" "web" {
-  ami             = "ami-05238ab1443fdf48f"
-  instance_type   = "t2.micro"
-  key_name        = aws_key_pair.deployer_new.key_name
-  security_groups = [aws_security_group.allow_ssh_new.name]
+# EC2 Instance
+resource "aws_instance" "web_server" {
+  ami           = data.aws_ami.amazon_linux.id
+  instance_type = "t2.micro"
+  key_name      = "key-app-pair"
+
+  vpc_security_group_ids = [aws_security_group.allow_http.id]
+
+  user_data = <<-EOF
+#!/bin/bash
+sudo amazon-linux-extras install docker -y
+sudo service docker start
+sudo usermod -a -G docker ec2-user
+sudo chmod 666 /var/run/docker.sock # Not ideal for production, but simplifies for this example
+sudo mkdir -p /var/lib/expensetracker-data
+sudo chmod 777 /var/lib/expensetracker-data
+docker run -d -p 8080:8080 -v /var/lib/expensetracker-data:/flask-data emanshawky/expensetracker:latest
+  EOF
 
   tags = {
-    Name = "TerraformEC2"
+    Name = "python-app-server"
   }
 }
 
-resource "local_file" "ansible_inventory" {
-  content  = templatefile("${path.module}/inventory.tpl", { instances = [aws_instance.web.public_ip] })
-  filename = "${path.module}/inventory.ini"
+# Data source for Amazon Linux AMI
+data "aws_ami" "amazon_linux" {
+  most_recent = true
+  owners      = ["amazon"]
+
+  filter {
+    name   = "name"
+    values = ["amzn2-ami-hvm-*-x86_64-gp2"] # Example filter, adjust as needed
+  }
 }
 
-output "instance_public_ip" {
-  description = "The public IP address of the EC2 instance"
-  value       = aws_instance.web.public_ip
+# Output the public IP address
+output "public_ip" {
+  value = aws_instance.web_server.public_ip
 }

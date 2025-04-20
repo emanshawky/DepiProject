@@ -10,9 +10,12 @@ db_path = os.path.join(os.getenv("DB_PATH", "/flask-data"), "expenses.db")
 
 # Initialize database and tables
 def init_db():
+    print("***** START init_db *****")  # New
+    print(f"Database path: {db_path}")  # Important!    
     db_dir = os.path.dirname(db_path)
     if not os.path.exists(db_dir):
         os.makedirs(db_dir)
+        print(f"Created directory: {db_dir}")
     conn = sqlite3.connect(db_path)
     cursor = conn.cursor()
     cursor.execute('''CREATE TABLE IF NOT EXISTS expenses (
@@ -31,6 +34,7 @@ def init_db():
         cursor.execute("INSERT INTO earnings (id, amount) VALUES (1, 0.0)")
     conn.commit()
     conn.close()
+    print("***** END init_db *****")
 
 @app.route("/")
 def index():
@@ -101,5 +105,8 @@ def analysis():
                            balance=balance)
 
 if __name__ == "__main__":
+    print("***** BEFORE init_db *****")
     init_db()
-    app.run(host="0.0.0.0", port=5000, debug=True)
+    print("***** AFTER init_db *****") # New
+    app.run(host="0.0.0.0", port=8080, debug=True)
+
